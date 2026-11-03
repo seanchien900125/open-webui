@@ -67,6 +67,7 @@ from open_webui.models.knowledge import Knowledges
 
 # Document loaders
 from open_webui.retrieval.loaders.youtube import YoutubeLoader, YoutubeTranscriptError
+from open_webui.retrieval.tokenizer import BM25_TOKENIZERS, is_valid_bm25_tokenizer
 from open_webui.retrieval.utils import (
     build_loader_from_config,
     filter_accessible_collections,
@@ -128,7 +129,7 @@ from open_webui.utils.misc import (
     calculate_sha256_string,
     sanitize_text_for_db,
 )
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 
 log = logging.getLogger(__name__)
@@ -252,6 +253,7 @@ RETRIEVAL_CONFIG_KEYS = {
     'AZURE_AI_SEARCH_API_KEY': 'web.search.azure_ai_search_api_key',
     'AZURE_AI_SEARCH_ENDPOINT': 'web.search.azure_ai_search_endpoint',
     'AZURE_AI_SEARCH_INDEX_NAME': 'web.search.azure_ai_search_index_name',
+    'BM25_TOKENIZER': 'rag.bm25_tokenizer',
     'BING_SEARCH_V7_ENDPOINT': 'web.search.bing_search_v7_endpoint',
     'BING_SEARCH_V7_SUBSCRIPTION_KEY': 'web.search.bing_search_v7_subscription_key',
     'BOCHA_SEARCH_API_KEY': 'web.search.bocha_search_api_key',
@@ -627,6 +629,7 @@ async def get_rag_config(request: Request, user=Depends(get_admin_user)):
         'TOP_K_RERANKER': config['rag.top_k_reranker'],
         'RELEVANCE_THRESHOLD': config['rag.relevance_threshold'],
         'HYBRID_BM25_WEIGHT': config['rag.hybrid_bm25_weight'],
+        'BM25_TOKENIZER': config['rag.bm25_tokenizer'],
         # Content extraction settings
         'CONTENT_EXTRACTION_ENGINE': config['rag.content_extraction_engine'],
         'CONTENT_EXTRACTION_SUPPORTED_MEDIA_MIME_TYPES': config['rag.content_extraction.supported_media_mime_types'],
@@ -870,6 +873,17 @@ class ConfigForm(BaseModel):
     TOP_K_RERANKER: int | None = None
     RELEVANCE_THRESHOLD: float | None = None
     HYBRID_BM25_WEIGHT: float | None = None
+    BM25_TOKENIZER: str | None = None
+
+    @field_validator('BM25_TOKENIZER')
+    @classmethod
+    def validate_bm25_tokenizer(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip().lower()
+        if not is_valid_bm25_tokenizer(value):
+            raise ValueError(f'Unknown BM25 tokenizer. Use one of: {", ".join(BM25_TOKENIZERS)}.')
+        return value
 
     # Content extraction settings
     CONTENT_EXTRACTION_ENGINE: str | None = None
@@ -1062,6 +1076,7 @@ async def update_rag_config(request: Request, form_data: ConfigForm, user=Depend
         'TOP_K_RERANKER': config['rag.top_k_reranker'],
         'RELEVANCE_THRESHOLD': config['rag.relevance_threshold'],
         'HYBRID_BM25_WEIGHT': config['rag.hybrid_bm25_weight'],
+        'BM25_TOKENIZER': config['rag.bm25_tokenizer'],
         # Content extraction settings
         'CONTENT_EXTRACTION_ENGINE': config['rag.content_extraction_engine'],
         'CONTENT_EXTRACTION_SUPPORTED_MEDIA_MIME_TYPES': config['rag.content_extraction.supported_media_mime_types'],
@@ -2834,6 +2849,7 @@ async def query_doc_handler(
                     if form_data.hybrid_bm25_weight is not None
                     else config['rag.hybrid_bm25_weight']
                 ),
+                bm25_tokenizer=config['rag.bm25_tokenizer'],
             )
         else:
             query_embedding = await request.app.state.EMBEDDING_FUNCTION(
@@ -2904,6 +2920,7 @@ async def query_collection_handler(
                     if form_data.enable_enriched_texts is not None
                     else config['rag.enable_hybrid_search_enriched_texts']
                 ),
+                bm25_tokenizer=config['rag.bm25_tokenizer'],
             )
         else:
             return await query_collection(

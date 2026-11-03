@@ -1338,6 +1338,19 @@
 							</AdminSettingRow>
 
 							<AdminSettingRow
+								label={$i18n.t('settings.admin.documents.bm25Tokenizer.label')}
+								description={$i18n.t('settings.admin.documents.bm25Tokenizer.description')}
+								let:labelId
+							>
+								<SettingsSelect id={`${labelId}-control`} bind:value={RAGConfig.BM25_TOKENIZER}>
+									<option value="cjk">{$i18n.t('settings.admin.documents.bm25Tokenizer.cjk')}</option>
+									<option value="whitespace"
+										>{$i18n.t('settings.admin.documents.bm25Tokenizer.whitespace')}</option
+									>
+								</SettingsSelect>
+							</AdminSettingRow>
+
+							<AdminSettingRow
 								label={$i18n.t('settings.admin.documents.rerankingEngine.label')}
 								description={$i18n.t('settings.admin.documents.rerankingEngine.description')}
 								let:labelId
