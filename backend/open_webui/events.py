@@ -200,6 +200,11 @@ class EventDefinitions(BaseModel):
     CHAT_FAILED: EventDefinition = EventDefinition(
         name='chat.failed', description='A chat response failed.', message='Chat failed'
     )
+    GUARDRAIL_TRIGGERED: EventDefinition = EventDefinition(
+        name='guardrail.triggered',
+        description='A chat message matched a guardrail rule. Reports kinds and counts, never the matched text.',
+        message='Guardrail triggered',
+    )
     CHAT_IMPORTED: EventDefinition = EventDefinition(
         name='chat.imported', description='A chat was imported.', message='Chat imported'
     )

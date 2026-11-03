@@ -145,13 +145,13 @@ from open_webui.models.channels import Channels
 from open_webui.models.chats import ChatForm, Chats
 from open_webui.models.config import Config
 from open_webui.models.functions import Functions
+from open_webui.models.groups import Groups, resolve_group_default_models
 from open_webui.models.messages import Messages
 from open_webui.models.models import Models, normalize_model_tags
-from open_webui.models.groups import Groups, resolve_group_default_models
 from open_webui.models.users import Users
 from open_webui.routers import (
-    apps,
     analytics,
+    apps,
     audio,
     auths,
     automations,
@@ -164,6 +164,7 @@ from open_webui.routers import (
     folders,
     functions,
     groups,
+    guardrails,
     images,
     knowledge,
     memories,
@@ -265,7 +266,6 @@ from open_webui.utils.models import (
     get_all_models,
     get_filtered_models,
 )
-from open_webui.utils.payload import apply_model_controls
 from open_webui.utils.oauth import (
     OAuthClientInformationFull,
     OAuthClientManager,
@@ -278,6 +278,7 @@ from open_webui.utils.oauth import (
     recover_oauth_client_metadata,
     resolve_oauth_client_info,
 )
+from open_webui.utils.payload import apply_model_controls
 from open_webui.utils.plugin import install_tool_and_function_dependencies
 from open_webui.utils.recurrence import RecurrenceEvaluationTimeout
 from open_webui.utils.redis import get_redis_client
@@ -916,6 +917,7 @@ if ENABLE_ADMIN_ANALYTICS:
 app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
+app.include_router(guardrails.router, prefix='/api/v1/guardrails', tags=['guardrails'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 
 # SCIM 2.0 API for identity management

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import EyeSlash from '$lib/components/icons/EyeSlash.svelte';
 	import Grid from '$lib/components/icons/Grid.svelte';
 	import CodeBracket from '$lib/components/icons/CodeBracket.svelte';
 	import BarsArrowUp from '$lib/components/icons/BarsArrowUp.svelte';
@@ -88,6 +89,8 @@
 	<Photo {className} {strokeWidth} />
 {:else if id === 'pipelines'}
 	<QueueList {className} {strokeWidth} />
+{:else if id === 'guardrails'}
+	<EyeSlash {className} {strokeWidth} />
 {:else if id === 'db'}
 	<Database {className} {strokeWidth} />
 {/if}
