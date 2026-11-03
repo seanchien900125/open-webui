@@ -49,6 +49,7 @@
 	import AdminConnections from '$lib/components/admin/Settings/Connections.svelte';
 	import AdminModels from '$lib/components/admin/Settings/Models.svelte';
 	import AdminSubagents from '$lib/components/admin/Settings/Subagents.svelte';
+	import AdminUsageQuota from '$lib/components/admin/Settings/UsageQuota.svelte';
 	import AdminEvaluations from '$lib/components/admin/Settings/Evaluations.svelte';
 	import AdminAnalytics from '$lib/components/admin/Analytics.svelte';
 	import AdminIntegrations from '$lib/components/admin/Settings/Integrations.svelte';
@@ -165,6 +166,7 @@
 		'admin:connections': $i18n.t('AI'),
 		'admin:models': $i18n.t('AI'),
 		'admin:subagents': $i18n.t('AI'),
+		'admin:usage-quota': $i18n.t('AI'),
 		'admin:integrations': $i18n.t('Tools'),
 		'admin:apps': $i18n.t('Tools'),
 		'admin:documents': $i18n.t('Tools'),
@@ -305,6 +307,12 @@
 			titleKey: 'settings.admin.subagents.title',
 			title: $i18n.t('settings.admin.subagents.title'),
 			searchPrefixes: ['settings.admin.subagents.']
+		},
+		{
+			id: 'admin:usage-quota',
+			titleKey: 'settings.admin.usageQuota.title',
+			title: $i18n.t('settings.admin.usageQuota.title'),
+			searchPrefixes: ['settings.admin.usageQuota.']
 		},
 		{
 			id: 'admin:integrations',
@@ -925,6 +933,8 @@
 				<AdminModels bind:tabState />
 			{:else if selectedTab === 'admin:subagents'}
 				<AdminSubagents />
+			{:else if selectedTab === 'admin:usage-quota'}
+				<AdminUsageQuota />
 			{:else if selectedTab === 'admin:evaluations'}
 				<AdminEvaluations />
 			{:else if selectedTab === 'admin:analytics'}

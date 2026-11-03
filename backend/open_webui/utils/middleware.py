@@ -85,7 +85,6 @@ from open_webui.utils.access_control import has_permission
 from open_webui.utils.access_control.files import get_owner_accessible_folder_files
 from open_webui.utils.access_control.folders import has_folder_access
 from open_webui.utils.ask_user import stage_ask_user_tool_calls
-from open_webui.utils.audit import log_model_usage
 from open_webui.utils.chat import generate_chat_completion
 from open_webui.utils.chat_id import is_saved_chat_id, is_temporary_chat_id
 from open_webui.utils.code_interpreter import execute_code_jupyter
@@ -129,6 +128,7 @@ from open_webui.utils.misc import (
 from open_webui.utils.oauth import get_system_oauth_token
 from open_webui.utils.payload import apply_params_to_form_data, apply_system_prompt_to_body, resolve_system_prompt
 from open_webui.utils.plugin import load_function_module_by_id
+from open_webui.utils.quota import track_model_usage
 from open_webui.utils.response import (
     get_response_delta_key,
     handle_responses_streaming_event,
@@ -3941,7 +3941,7 @@ async def non_streaming_chat_response_handler(response, ctx):
     usage = response_data.get('usage') or {}
     timings = response_data.get('timings') or {}
     if isinstance(usage, dict) and isinstance(timings, dict):
-        log_model_usage(
+        await track_model_usage(
             request,
             user,
             response_data.get('selected_model_id') or ctx['form_data']['model'],
@@ -5607,7 +5607,7 @@ async def streaming_chat_response_handler(response, ctx):
                 try:
                     current_usage = await stream_body_handler(response, form_data)
                 finally:
-                    log_model_usage(request, user, form_data['model'], current_usage)
+                    await track_model_usage(request, user, form_data['model'], current_usage)
                     if response.background:
                         await response.background()
 
@@ -6117,7 +6117,7 @@ async def streaming_chat_response_handler(response, ctx):
                             try:
                                 current_usage = await stream_body_handler(res, new_form_data)
                             finally:
-                                log_model_usage(request, user, form_data['model'], current_usage)
+                                await track_model_usage(request, user, form_data['model'], current_usage)
                         elif getattr(res, 'status_code', 200) >= 400:
                             await emit_message_error(get_message_error_content(get_response_error_detail(res)))
                             break
@@ -6318,7 +6318,7 @@ async def streaming_chat_response_handler(response, ctx):
                                 try:
                                     await stream_body_handler(res, new_form_data)
                                 finally:
-                                    log_model_usage(request, user, form_data['model'], current_usage)
+                                    await track_model_usage(request, user, form_data['model'], current_usage)
                             elif getattr(res, 'status_code', 200) >= 400:
                                 await emit_message_error(get_message_error_content(get_response_error_detail(res)))
                                 break
@@ -6527,7 +6527,7 @@ async def streaming_chat_response_handler(response, ctx):
                 yield f'\n\ndata: {JSONCodec.dumps({"error": {"message": "Chat completion stream failed"}})}\n\n'
                 yield 'data: [DONE]\n\n'
             finally:
-                log_model_usage(request, user, form_data['model'], current_usage)
+                await track_model_usage(request, user, form_data['model'], current_usage)
 
         return StreamingResponse(
             stream_wrapper(response.body_iterator, events),

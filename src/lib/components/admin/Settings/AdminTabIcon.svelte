@@ -1,4 +1,5 @@
 <script lang="ts">
+	import ChartBar from '$lib/components/icons/ChartBar.svelte';
 	import Grid from '$lib/components/icons/Grid.svelte';
 	import CodeBracket from '$lib/components/icons/CodeBracket.svelte';
 	import BarsArrowUp from '$lib/components/icons/BarsArrowUp.svelte';
@@ -54,6 +55,8 @@
 	</svg>
 {:else if id === 'subagents'}
 	<UserCircle {className} {strokeWidth} />
+{:else if id === 'usage-quota'}
+	<ChartBar {className} {strokeWidth} />
 {:else if id === 'evaluations'}
 	<svg
 		aria-hidden="true"

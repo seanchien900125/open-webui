@@ -1713,6 +1713,12 @@ DEFAULT_MODELS = os.getenv('DEFAULT_MODELS', None)
 
 DEFAULT_PINNED_MODELS = os.getenv('DEFAULT_PINNED_MODELS', None)
 
+# Token quotas. Off by default. A limit of 0 means unlimited.
+ENABLE_USAGE_QUOTA = os.getenv('ENABLE_USAGE_QUOTA', 'False').lower() == 'true'
+USAGE_QUOTA_DAILY_TOKENS = int(os.getenv('USAGE_QUOTA_DAILY_TOKENS', '0') or 0)
+USAGE_QUOTA_MONTHLY_TOKENS = int(os.getenv('USAGE_QUOTA_MONTHLY_TOKENS', '0') or 0)
+USAGE_QUOTA_EXEMPT_ADMINS = os.getenv('USAGE_QUOTA_EXEMPT_ADMINS', 'True').lower() == 'true'
+
 # None uses the frontend's localized defaults; an empty list disables suggestions.
 try:
     DEFAULT_PROMPT_SUGGESTIONS = JSONCodec.loads(os.getenv('DEFAULT_PROMPT_SUGGESTIONS', 'null'))
@@ -3208,6 +3214,10 @@ DEFAULT_CONFIG = {
     'ui.enable_password_change_form': ENABLE_PASSWORD_CHANGE_FORM,
     'ui.default_locale': DEFAULT_LOCALE,
     'ui.default_models': DEFAULT_MODELS,
+    'usage.quota.enabled': ENABLE_USAGE_QUOTA,
+    'usage.quota.daily_tokens': USAGE_QUOTA_DAILY_TOKENS,
+    'usage.quota.monthly_tokens': USAGE_QUOTA_MONTHLY_TOKENS,
+    'usage.quota.exempt_admins': USAGE_QUOTA_EXEMPT_ADMINS,
     'ui.default_pinned_models': DEFAULT_PINNED_MODELS,
     'ui.default_interface_settings': DEFAULT_INTERFACE_SETTINGS,
     'ui.visibility': UI_VISIBILITY,

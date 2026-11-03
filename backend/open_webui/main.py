@@ -182,6 +182,7 @@ from open_webui.routers import (
     tasks,
     terminals,
     tools,
+    usage,
     users,
     utils,
 )
@@ -266,6 +267,7 @@ from open_webui.utils.models import (
     get_filtered_models,
 )
 from open_webui.utils.payload import apply_model_controls
+from open_webui.utils.quota import enforce_usage_quota
 from open_webui.utils.oauth import (
     OAuthClientInformationFull,
     OAuthClientManager,
@@ -908,6 +910,7 @@ app.include_router(skills.router, prefix='/api/v1/skills', tags=['skills'])
 app.include_router(memories.router, prefix='/api/v1/memories', tags=['memories'])
 app.include_router(folders.router, prefix='/api/v1/folders', tags=['folders'])
 app.include_router(groups.router, prefix='/api/v1/groups', tags=['groups'])
+app.include_router(usage.router, prefix='/api/v1/usage', tags=['usage'])
 app.include_router(files.router, prefix='/api/v1/files', tags=['files'])
 app.include_router(functions.router, prefix='/api/v1/functions', tags=['functions'])
 app.include_router(evaluations.router, prefix='/api/v1/evaluations', tags=['evaluations'])
@@ -1198,6 +1201,9 @@ async def chat_completion(
                         await check_model_access(user, fallback_model)
                 except Exception as e:
                     raise e
+
+            # Direct connections use the user's own provider key, so only server-side models are metered.
+            await enforce_usage_quota(user)
         else:
             model = model_item
             await _set_direct_model(request, model, user)
