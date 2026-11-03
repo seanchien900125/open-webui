@@ -175,6 +175,7 @@ from open_webui.routers import (
     openai,
     pipelines,
     prompts,
+    retention,
     retrieval,
     scim,
     search,
@@ -916,6 +917,7 @@ if ENABLE_ADMIN_ANALYTICS:
 app.include_router(utils.router, prefix='/api/v1/utils', tags=['utils'])
 app.include_router(terminals.router, prefix='/api/v1/terminals', tags=['terminals'])
 app.include_router(automations.router, prefix='/api/v1/automations', tags=['automations'])
+app.include_router(retention.router, prefix='/api/v1/retention', tags=['retention'])
 app.include_router(calendar.router, prefix='/api/v1/calendars', tags=['calendars'])
 
 # SCIM 2.0 API for identity management

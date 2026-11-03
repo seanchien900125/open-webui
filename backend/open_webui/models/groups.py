@@ -8,6 +8,7 @@ from open_webui.env import DEFAULT_GROUP_SHARE_PERMISSION
 from open_webui.internal.db import Base, JSONField, get_async_db_context, get_async_db
 from open_webui.models.access_grants import AccessGrant
 from open_webui.models.files import FileMetadataResponse
+from open_webui.utils.retention_policy import as_days
 from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import (
     JSON,
@@ -143,6 +144,26 @@ class GroupForm(BaseModel):
         if not isinstance(models, list) or any(not isinstance(model, str) or not model.strip() for model in models):
             raise ValueError('Default models must be a list of non-empty model IDs.')
         return {**data, 'config': {**config, 'default_models': list(dict.fromkeys(model.strip() for model in models))}}
+
+    @field_validator('data')
+    @classmethod
+    def validate_retention(cls, data):
+        retention = ((data or {}).get('config') or {}).get('retention')
+        if retention is None:
+            return data
+        if not isinstance(retention, dict):
+            raise ValueError('Retention must be an object.')
+        cleaned = {}
+        if retention.get('days') is not None:
+            days = as_days(retention['days'])
+            if days is None:
+                raise ValueError('Retention days must be a whole number of 0 or more (0 keeps chats forever).')
+            cleaned['days'] = days
+        if retention.get('hold') is not None:
+            if not isinstance(retention['hold'], bool):
+                raise ValueError('Retention hold must be true or false.')
+            cleaned['hold'] = retention['hold']
+        return {**data, 'config': {**data['config'], 'retention': cleaned}}
 
 
 class UserIdsForm(BaseModel):
