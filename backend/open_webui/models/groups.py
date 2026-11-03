@@ -8,6 +8,7 @@ from open_webui.env import DEFAULT_GROUP_SHARE_PERMISSION
 from open_webui.internal.db import Base, JSONField, get_async_db_context, get_async_db
 from open_webui.models.access_grants import AccessGrant
 from open_webui.models.files import FileMetadataResponse
+from open_webui.utils.quota_policy import as_limit
 from pydantic import BaseModel, ConfigDict, field_validator
 from sqlalchemy import (
     JSON,
@@ -143,6 +144,24 @@ class GroupForm(BaseModel):
         if not isinstance(models, list) or any(not isinstance(model, str) or not model.strip() for model in models):
             raise ValueError('Default models must be a list of non-empty model IDs.')
         return {**data, 'config': {**config, 'default_models': list(dict.fromkeys(model.strip() for model in models))}}
+
+    @field_validator('data')
+    @classmethod
+    def validate_usage_quota(cls, data):
+        quota = ((data or {}).get('config') or {}).get('usage_quota')
+        if quota is None:
+            return data
+        if not isinstance(quota, dict):
+            raise ValueError('Usage quota must be an object.')
+        cleaned = {}
+        for key in ('daily_tokens', 'monthly_tokens'):
+            if quota.get(key) is None:
+                continue
+            limit = as_limit(quota[key])
+            if limit is None:
+                raise ValueError('Token limits must be whole numbers of 0 or more (0 means unlimited).')
+            cleaned[key] = limit
+        return {**data, 'config': {**data['config'], 'usage_quota': cleaned}}
 
 
 class UserIdsForm(BaseModel):
