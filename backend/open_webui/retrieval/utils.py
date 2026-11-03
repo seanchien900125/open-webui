@@ -52,6 +52,7 @@ from open_webui.retrieval.vector.main import GetResult, SearchResult
 from open_webui.retrieval.web.utils import get_web_loader
 from open_webui.utils.access_control.files import get_owner_accessible_folder_files, has_access_to_file
 from open_webui.utils.access_control.folders import has_folder_access
+from open_webui.retrieval.tokenizer import get_bm25_tokenizer, tokenize_whitespace
 from open_webui.utils.headers import get_json_bearer_headers, include_user_info_headers
 from open_webui.utils.misc import get_content_from_message, get_message_list
 
@@ -68,9 +69,16 @@ class BM25Retriever(BaseRetriever):
     docs: list[Document]
     vectorizer: Any
     k: int
+    # Must be the same tokenizer that built `vectorizer`, or no query term can match.
+    tokenize: Any = tokenize_whitespace
 
     def _get_relevant_documents(self, query: str, *, run_manager: CallbackManagerForRetrieverRun) -> list[Document]:
-        return self.vectorizer.get_top_n(query.split(), self.docs, n=self.k)
+        return self.vectorizer.get_top_n(self.tokenize(query), self.docs, n=self.k)
+
+
+async def _resolve_bm25_tokenizer_name(name: str | None) -> str | None:
+    """Use the caller's choice, or read the admin setting when the caller did not pass one."""
+    return name if name is not None else await Config.get('rag.bm25_tokenizer')
 
 
 def is_youtube_url(url: str) -> bool:
@@ -491,6 +499,7 @@ async def query_doc_with_hybrid_search(
     hybrid_bm25_weight: float,
     enable_enriched_texts: bool = False,
     native_hybrid_search: bool = True,
+    bm25_tokenizer: str | None = None,
 ) -> dict:
     if native_hybrid_search and not enable_enriched_texts:
         native_result = await query_doc_with_native_hybrid_search(
@@ -535,10 +544,14 @@ async def query_doc_with_hybrid_search(
 
     from rank_bm25 import BM25Okapi
 
+    # One tokenizer for both sides: documents are indexed here, the query by the retriever.
+    tokenize = get_bm25_tokenizer(await _resolve_bm25_tokenizer_name(bm25_tokenizer))
+
     bm25_retriever = BM25Retriever(
         docs=[Document(page_content=text, metadata=meta) for text, meta in zip(bm25_texts, bm25_metadatas)],
-        vectorizer=BM25Okapi([text.split() for text in bm25_texts]),
+        vectorizer=BM25Okapi([tokenize(text) for text in bm25_texts]),
         k=k,
+        tokenize=tokenize,
     )
 
     vector_search_retriever = VectorSearchRetriever(
@@ -700,6 +713,7 @@ async def query_collection(
         'rag.relevance_threshold',
         'rag.hybrid_bm25_weight',
         'rag.enable_hybrid_search_enriched_texts',
+        'rag.bm25_tokenizer',
     )
     # When request is provided, try hybrid search + reranking if enabled
     if request and config.get('rag.enable_hybrid_search'):
@@ -719,6 +733,7 @@ async def query_collection(
                 r=config.get('rag.relevance_threshold'),
                 hybrid_bm25_weight=config.get('rag.hybrid_bm25_weight'),
                 enable_enriched_texts=config.get('rag.enable_hybrid_search_enriched_texts'),
+                bm25_tokenizer=config.get('rag.bm25_tokenizer'),
             )
         except Exception as e:
             log.debug('Hybrid search failed, falling back to vector search: %s', e)
@@ -788,10 +803,14 @@ async def query_collection_with_hybrid_search(
     r: float,
     hybrid_bm25_weight: float,
     enable_enriched_texts: bool = False,
+    bm25_tokenizer: str | None = None,
 ) -> dict:
     results = []
     last_error = None
     failed_collection_names = set()
+
+    # Read once here instead of once per (collection x query) below.
+    bm25_tokenizer = await _resolve_bm25_tokenizer_name(bm25_tokenizer)
 
     if not enable_enriched_texts:
 
@@ -850,6 +869,7 @@ async def query_collection_with_hybrid_search(
                 hybrid_bm25_weight=hybrid_bm25_weight,
                 enable_enriched_texts=enable_enriched_texts,
                 native_hybrid_search=False,
+                bm25_tokenizer=bm25_tokenizer,
             )
             return result, None, collection_name
         except Exception as e:

@@ -987,6 +987,9 @@ RAG_TOP_K_RERANKER = int(os.getenv('RAG_TOP_K_RERANKER', '3'))
 RAG_RELEVANCE_THRESHOLD = float(os.getenv('RAG_RELEVANCE_THRESHOLD', '0.0'))
 RAG_HYBRID_BM25_WEIGHT = float(os.getenv('RAG_HYBRID_BM25_WEIGHT', '0.5'))
 
+# How the built-in BM25 splits text into words: 'cjk' (Chinese/Japanese aware) or 'whitespace'.
+RAG_BM25_TOKENIZER = os.getenv('RAG_BM25_TOKENIZER', 'cjk').strip().lower()
+
 ENABLE_RAG_HYBRID_SEARCH = os.getenv('ENABLE_RAG_HYBRID_SEARCH', '').lower() == 'true'
 
 ENABLE_RAG_HYBRID_SEARCH_ENRICHED_TEXTS = (
@@ -3009,6 +3012,7 @@ DEFAULT_CONFIG = {
     'rag.top_k_reranker': RAG_TOP_K_RERANKER,
     'rag.relevance_threshold': RAG_RELEVANCE_THRESHOLD,
     'rag.hybrid_bm25_weight': RAG_HYBRID_BM25_WEIGHT,
+    'rag.bm25_tokenizer': RAG_BM25_TOKENIZER,
     'rag.enable_hybrid_search': ENABLE_RAG_HYBRID_SEARCH,
     'rag.enable_hybrid_search_enriched_texts': ENABLE_RAG_HYBRID_SEARCH_ENRICHED_TEXTS,
     'rag.full_context': RAG_FULL_CONTEXT,
