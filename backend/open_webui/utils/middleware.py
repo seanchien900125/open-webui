@@ -102,6 +102,7 @@ from open_webui.utils.filter import (
     get_filter_functions,
     process_filter_functions,
 )
+from open_webui.utils.guardrails import enforce_guardrails, mask_messages_for_tasks
 from open_webui.utils.json_codec import JSONCodec, dumps_bytes
 from open_webui.utils.memory import add_memory_context, review_memory_after_turn
 from open_webui.utils.misc import (
@@ -2340,6 +2341,9 @@ async def process_chat_payload(request, form_data, user, metadata, model):
 
     variables = form_data.pop('variables', None)
 
+    # Guardrails run before pipelines and filters see the text, and before any retrieved context is added
+    form_data = await enforce_guardrails(request, user, form_data, metadata)
+
     # Process the form_data through the pipeline
     try:
         form_data = await process_pipeline_inlet_filter(request, form_data, user, models)
@@ -3592,10 +3596,13 @@ async def background_tasks_handler(ctx):
         if message:
             message = {**message, 'model': form_data.get('model')}
 
+    # Titles, tags and follow-ups re-read the stored text, so mask what the model sees here too
+    task_messages = await mask_messages_for_tasks(user, messages) if tasks and messages else messages
+
     if message and 'model' in message:
         if tasks and messages:
             if TASKS.FOLLOW_UP_GENERATION in tasks and tasks[TASKS.FOLLOW_UP_GENERATION]:
-                follow_up_messages = list(messages)
+                follow_up_messages = list(task_messages)
                 assistant_message = ctx.get('assistant_message')
                 if not is_saved_chat_id(metadata.get('chat_id')) and assistant_message:
                     if follow_up_messages[-1].get('role') == 'assistant' and (
@@ -3663,7 +3670,7 @@ async def background_tasks_handler(ctx):
                             request,
                             {
                                 'model': message['model'],
-                                'messages': messages,
+                                'messages': task_messages,
                                 'chat_id': metadata['chat_id'],
                             },
                             user,
@@ -3719,7 +3726,7 @@ async def background_tasks_handler(ctx):
                         request,
                         {
                             'model': message['model'],
-                            'messages': messages,
+                            'messages': task_messages,
                             'chat_id': metadata['chat_id'],
                         },
                         user,

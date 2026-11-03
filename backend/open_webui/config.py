@@ -1707,6 +1707,17 @@ ENABLE_PASSWORD_CHANGE_FORM = os.getenv('ENABLE_PASSWORD_CHANGE_FORM', 'True').l
 
 ENABLE_PASSWORD_AUTH = os.getenv('ENABLE_PASSWORD_AUTH', 'True').lower() == 'true'
 
+# Guardrails. Off by default. PII actions: off | log | mask | block. Injection actions: off | log | block.
+ENABLE_GUARDRAILS = os.getenv('ENABLE_GUARDRAILS', 'False').lower() == 'true'
+GUARDRAILS_PII_ACTION = os.getenv('GUARDRAILS_PII_ACTION', 'mask').lower()
+GUARDRAILS_PII_KINDS = [
+    kind.strip()
+    for kind in os.getenv('GUARDRAILS_PII_KINDS', 'email,phone,tw_id,credit_card,secret').split(',')
+    if kind.strip()
+]
+GUARDRAILS_INJECTION_ACTION = os.getenv('GUARDRAILS_INJECTION_ACTION', 'log').lower()
+GUARDRAILS_EXEMPT_ADMINS = os.getenv('GUARDRAILS_EXEMPT_ADMINS', 'False').lower() == 'true'
+
 DEFAULT_LOCALE = os.getenv('DEFAULT_LOCALE', '')
 
 DEFAULT_MODELS = os.getenv('DEFAULT_MODELS', None)
@@ -3207,6 +3218,11 @@ DEFAULT_CONFIG = {
     'ui.enable_login_form': ENABLE_LOGIN_FORM,
     'ui.enable_password_change_form': ENABLE_PASSWORD_CHANGE_FORM,
     'ui.default_locale': DEFAULT_LOCALE,
+    'guardrails.enabled': ENABLE_GUARDRAILS,
+    'guardrails.pii.action': GUARDRAILS_PII_ACTION,
+    'guardrails.pii.kinds': GUARDRAILS_PII_KINDS,
+    'guardrails.injection.action': GUARDRAILS_INJECTION_ACTION,
+    'guardrails.exempt_admins': GUARDRAILS_EXEMPT_ADMINS,
     'ui.default_models': DEFAULT_MODELS,
     'ui.default_pinned_models': DEFAULT_PINNED_MODELS,
     'ui.default_interface_settings': DEFAULT_INTERFACE_SETTINGS,

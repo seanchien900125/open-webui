@@ -61,6 +61,7 @@
 	import AdminImages from '$lib/components/admin/Settings/Images.svelte';
 	import AdminPipelines from '$lib/components/admin/Settings/Pipelines.svelte';
 	import AdminDatabase from '$lib/components/admin/Settings/Database.svelte';
+	import AdminGuardrails from '$lib/components/admin/Settings/Guardrails.svelte';
 
 	const i18n: Writable<any> = getContext('i18n');
 
@@ -175,6 +176,7 @@
 		'admin:pipelines': $i18n.t('Tools'),
 		'admin:evaluations': $i18n.t('Quality'),
 		'admin:analytics': $i18n.t('Quality'),
+		'admin:guardrails': $i18n.t('Security'),
 		'admin:db': $i18n.t('Data')
 	};
 	const settingGroupTitle = (tabId: string) =>
@@ -365,6 +367,12 @@
 			titleKey: 'settings.admin.evaluations.title',
 			title: $i18n.t('settings.admin.evaluations.title'),
 			searchPrefixes: ['settings.admin.evaluations.']
+		},
+		{
+			id: 'admin:guardrails',
+			titleKey: 'settings.admin.guardrails.title',
+			title: $i18n.t('settings.admin.guardrails.title'),
+			searchPrefixes: ['settings.admin.guardrails.']
 		},
 		{
 			id: 'admin:db',
@@ -957,6 +965,8 @@
 						toast.success($i18n.t('Settings saved successfully!'));
 					}}
 				/>
+			{:else if selectedTab === 'admin:guardrails'}
+				<AdminGuardrails />
 			{:else if selectedTab === 'admin:db'}
 				<AdminDatabase
 					saveHandler={() => {
