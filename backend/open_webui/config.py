@@ -1707,6 +1707,12 @@ ENABLE_PASSWORD_CHANGE_FORM = os.getenv('ENABLE_PASSWORD_CHANGE_FORM', 'True').l
 
 ENABLE_PASSWORD_AUTH = os.getenv('ENABLE_PASSWORD_AUTH', 'True').lower() == 'true'
 
+# Chat retention. Off by default. Chats not updated for this many days are deleted; 0 keeps them forever.
+ENABLE_CHAT_RETENTION = os.getenv('ENABLE_CHAT_RETENTION', 'False').lower() == 'true'
+CHAT_RETENTION_DAYS = int(os.getenv('CHAT_RETENTION_DAYS', '0') or 0)
+CHAT_RETENTION_KEEP_PINNED = os.getenv('CHAT_RETENTION_KEEP_PINNED', 'True').lower() == 'true'
+CHAT_RETENTION_KEEP_ARCHIVED = os.getenv('CHAT_RETENTION_KEEP_ARCHIVED', 'False').lower() == 'true'
+
 DEFAULT_LOCALE = os.getenv('DEFAULT_LOCALE', '')
 
 DEFAULT_MODELS = os.getenv('DEFAULT_MODELS', None)
@@ -3207,6 +3213,10 @@ DEFAULT_CONFIG = {
     'ui.enable_login_form': ENABLE_LOGIN_FORM,
     'ui.enable_password_change_form': ENABLE_PASSWORD_CHANGE_FORM,
     'ui.default_locale': DEFAULT_LOCALE,
+    'retention.chat.enabled': ENABLE_CHAT_RETENTION,
+    'retention.chat.days': CHAT_RETENTION_DAYS,
+    'retention.chat.keep_pinned': CHAT_RETENTION_KEEP_PINNED,
+    'retention.chat.keep_archived': CHAT_RETENTION_KEEP_ARCHIVED,
     'ui.default_models': DEFAULT_MODELS,
     'ui.default_pinned_models': DEFAULT_PINNED_MODELS,
     'ui.default_interface_settings': DEFAULT_INTERFACE_SETTINGS,

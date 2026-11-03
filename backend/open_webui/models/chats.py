@@ -2809,6 +2809,73 @@ class ChatTable:
         except Exception:
             return False
 
+    @staticmethod
+    def _expired_conditions(
+        cutoff: int,
+        *,
+        user_ids: list[str] | None,
+        exclude_user_ids: list[str] | None,
+        keep_pinned: bool,
+        keep_archived: bool,
+    ) -> list:
+        """Chats last updated before ``cutoff``. Chats waiting on a timer are never expired."""
+        conditions = [Chat.updated_at < cutoff, Chat.timer_at.is_(None)]
+        if user_ids is not None:
+            conditions.append(Chat.user_id.in_(user_ids))
+        if exclude_user_ids:
+            conditions.append(Chat.user_id.not_in(exclude_user_ids))
+        if keep_pinned:
+            conditions.append(or_(Chat.pinned.is_(None), Chat.pinned.is_(False)))
+        if keep_archived:
+            conditions.append(or_(Chat.archived.is_(None), Chat.archived.is_(False)))
+        return conditions
+
+    async def get_expired_chats(
+        self,
+        cutoff: int,
+        *,
+        user_ids: list[str] | None = None,
+        exclude_user_ids: list[str] | None = None,
+        keep_pinned: bool = True,
+        keep_archived: bool = False,
+        limit: int = 100,
+        db: AsyncSession | None = None,
+    ) -> list[tuple[str, str]]:
+        """``(chat_id, user_id)`` of the oldest expired chats, at most ``limit``."""
+        conditions = self._expired_conditions(
+            cutoff,
+            user_ids=user_ids,
+            exclude_user_ids=exclude_user_ids,
+            keep_pinned=keep_pinned,
+            keep_archived=keep_archived,
+        )
+        async with get_async_db_context(db) as session:
+            result = await session.execute(
+                select(Chat.id, Chat.user_id).where(*conditions).order_by(Chat.updated_at).limit(limit)
+            )
+            return [(row.id, row.user_id) for row in result.all()]
+
+    async def count_expired_chats(
+        self,
+        cutoff: int,
+        *,
+        user_ids: list[str] | None = None,
+        exclude_user_ids: list[str] | None = None,
+        keep_pinned: bool = True,
+        keep_archived: bool = False,
+        db: AsyncSession | None = None,
+    ) -> int:
+        conditions = self._expired_conditions(
+            cutoff,
+            user_ids=user_ids,
+            exclude_user_ids=exclude_user_ids,
+            keep_pinned=keep_pinned,
+            keep_archived=keep_archived,
+        )
+        async with get_async_db_context(db) as session:
+            result = await session.execute(select(func.count()).select_from(Chat).where(*conditions))
+            return int(result.scalar() or 0)
+
     async def delete_chat_by_id(self, id: str, db: AsyncSession | None = None) -> bool:
         try:
             async with get_async_db_context(db) as session:

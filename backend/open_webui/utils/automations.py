@@ -13,6 +13,7 @@ Environment:
     SCHEDULER_POLL_INTERVAL             – seconds between polls (default: 10)
     TIMER_POLL_INTERVAL                 – seconds between timer polls (default: 1)
     CALENDAR_ALERT_LOOKAHEAD_MINUTES   – default alert window (default: 5)
+    RETENTION_POLL_INTERVAL            – seconds between chat retention passes (default: 3600)
 """
 
 import asyncio
@@ -54,6 +55,7 @@ log = logging.getLogger(__name__)
 SCHEDULER_POLL_INTERVAL = int(os.getenv('SCHEDULER_POLL_INTERVAL', os.getenv('AUTOMATION_POLL_INTERVAL', '10')))
 TIMER_POLL_INTERVAL = int(os.getenv('TIMER_POLL_INTERVAL', '1'))
 CALENDAR_ALERT_LOOKAHEAD_MINUTES = int(os.getenv('CALENDAR_ALERT_LOOKAHEAD_MINUTES', '10'))
+RETENTION_POLL_INTERVAL = int(os.getenv('RETENTION_POLL_INTERVAL', '3600'))
 
 
 ############################
@@ -73,6 +75,7 @@ async def scheduler_worker_loop(app) -> None:
     Handles:
       1. Automation execution  (ENABLE_AUTOMATIONS)
       2. Calendar event alerts (ENABLE_CALENDAR)
+      3. Chat retention        (ENABLE_CHAT_RETENTION)
 
     Runs on every instance. Poll interval is configurable via
     SCHEDULER_POLL_INTERVAL env var (default: 10 seconds).
@@ -83,6 +86,8 @@ async def scheduler_worker_loop(app) -> None:
         SCHEDULER_POLL_INTERVAL,
     )
     next_scheduler_poll = 0.0
+    # First retention pass one minute after startup, so a restart never deletes during boot.
+    next_retention_run = time.monotonic() + 60
 
     while True:
         try:
@@ -121,10 +126,38 @@ async def scheduler_worker_loop(app) -> None:
                 except Exception:
                     log.exception('Scheduler: calendar alert error')
 
+            # ── Chat retention ──
+            next_retention_run = _schedule_retention_pass(app, now, next_retention_run)
+
         except Exception:
             log.exception('Scheduler worker error')
 
         await asyncio.sleep(max(1, TIMER_POLL_INTERVAL))
+
+
+def _schedule_retention_pass(app, now: float, next_run: float) -> float:
+    """Start a retention pass when one is due. Returns the time of the next one."""
+    if now < next_run:
+        return next_run
+    _start_retention_pass(app)
+    return now + RETENTION_POLL_INTERVAL
+
+
+def _start_retention_pass(app) -> None:
+    """Run a retention pass in the background unless the previous one is still going."""
+    running = getattr(app.state, 'retention_task', None)
+    if running is not None and not running.done():
+        return
+
+    async def run() -> None:
+        from open_webui.utils.retention import purge_expired_chats
+
+        try:
+            await purge_expired_chats(app)
+        except Exception:
+            log.exception('Scheduler: chat retention error')
+
+    app.state.retention_task = asyncio.create_task(run())
 
 
 ##########################
